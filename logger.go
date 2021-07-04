@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"sync"
@@ -16,7 +17,7 @@ const (
 )
 
 const (
-	prefixInfo  = "INFO : "
+	prefixInfo  = "INFO: "
 	prefixError = "ERROR: "
 	prefixFatal = "FATAL: "
 )
@@ -29,16 +30,30 @@ type Logger struct {
 	verbose  bool
 }
 
+// Init loggers for each log levels
 func New(verbose bool) *Logger {
-	flags := log.Ldate | log.Ltime
+	flags := log.Ldate | log.Ltime | log.Lmicroseconds
 	l := Logger{
 		infoLog:  log.New(os.Stdout, prefixInfo, flags),
-		errorLog: log.New(os.Stdout, prefixError, flags),
-		fatalLog: log.New(os.Stdout, prefixFatal, flags),
+		errorLog: log.New(os.Stderr, prefixError, flags),
+		fatalLog: log.New(os.Stderr, prefixFatal, flags),
 		verbose:  verbose,
 	}
 	return &l
 }
+
+// Sets the output destination for the loggers
+// By default destination is stdout, you can change that
+// with this function
+func (l *Logger) SetOutput(w io.Writer) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.infoLog.SetOutput(w)
+	l.errorLog.SetOutput(w)
+	l.fatalLog.SetOutput(w)
+}
+
+// enable the verbose mode
 func (l *Logger) SetVerbose(verbose bool) {
 	l.verbose = verbose
 }
