@@ -58,6 +58,11 @@ func (l *Logger) SetVerbose(verbose bool) {
 	l.verbose = verbose
 }
 
+// Return Error Logger
+func (l *Logger) ErrorLogger() *log.Logger {
+	return l.errorLog
+}
+
 func (l *Logger) output(level Level, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
