@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 )
 
 type Level int
@@ -22,12 +23,19 @@ const (
 	prefixFatal = "FATAL: "
 )
 
+type LogEntry struct {
+	Timestamp time.Time
+	Level     Level
+	Message   string
+}
+
 type Logger struct {
 	infoLog  *log.Logger
 	errorLog *log.Logger
 	fatalLog *log.Logger
 	mu       sync.Mutex
 	verbose  bool
+	channel  chan LogEntry
 }
 
 // Init loggers for each log levels
@@ -40,6 +48,13 @@ func New(verbose bool) *Logger {
 		verbose:  verbose,
 	}
 	return &l
+}
+
+// Sets the output to a channel
+func (l *Logger) SetOutputChannel(c chan LogEntry) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.channel = c
 }
 
 // Sets the output destination for the loggers
@@ -81,15 +96,27 @@ func (l *Logger) output(level Level, msg string) {
 
 func (l *Logger) Info(format string, v ...interface{}) {
 	if l.verbose {
-		l.output(INFO, fmt.Sprintf(format, v...))
+		if l.channel != nil {
+			l.channel <- LogEntry{Timestamp: time.Now(), Level: INFO, Message: fmt.Sprintf(format, v...)}
+		} else {
+			l.output(INFO, fmt.Sprintf(format, v...))
+		}
 	}
 }
 
 func (l *Logger) Error(format string, v ...interface{}) {
-	l.output(ERROR, fmt.Sprintf(format, v...))
+	if l.channel != nil {
+		l.channel <- LogEntry{Timestamp: time.Now(), Level: ERROR, Message: fmt.Sprintf(format, v...)}
+	} else {
+		l.output(ERROR, fmt.Sprintf(format, v...))
+	}
 }
 
 func (l *Logger) Fatal(v ...interface{}) {
-	l.output(FATAL, fmt.Sprint(v...))
-	os.Exit(1)
+	if l.channel != nil {
+		l.channel <- LogEntry{Timestamp: time.Now(), Level: FATAL, Message: fmt.Sprint(v...)}
+	} else {
+		l.output(FATAL, fmt.Sprint(v...))
+		os.Exit(1)
+	}
 }

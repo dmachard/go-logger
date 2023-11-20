@@ -9,6 +9,41 @@ import (
 
 const Pattern_ts = `\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}.\d{6} `
 
+func TestLoggerWithChannel(t *testing.T) {
+	// Create channel
+	logChannel := make(chan LogEntry, 10)
+
+	// Create logger
+	lg := New(true)
+	lg.SetOutputChannel((logChannel))
+
+	// logs messages
+	lg.Info("This is an informational message.")
+	lg.Error("This is an error message.")
+	lg.Fatal("This is a fatal message.")
+
+	// Expected entries
+	expectedEntries := []LogEntry{
+		{Level: INFO, Message: "This is an informational message."},
+		{Level: ERROR, Message: "This is an error message."},
+		{Level: FATAL, Message: "This is a fatal message."},
+	}
+
+	for i, expectedEntry := range expectedEntries {
+		select {
+		case entry := <-logChannel:
+			if entry.Level != expectedEntry.Level || entry.Message != expectedEntry.Message {
+				t.Errorf("Test case %d: Unexpected log entry. Got: %+v, Expected: %+v", i+1, entry, expectedEntry)
+			}
+		default:
+			t.Errorf("Test case %d: No log entry received from the channel.", i+1)
+		}
+	}
+
+	// cleanup
+	close(logChannel)
+}
+
 func TestLogInfo(t *testing.T) {
 	// prepare a buffer instead of stdout and a string to search
 	const msg = "hello world"
