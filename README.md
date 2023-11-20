@@ -1,9 +1,11 @@
 # go-logger
 
-Basic logger library with the following features: 
+Basic logger library with the following features:
+
 - timestamp
 - level support (INFO, ERROR and FATAL)
 - verbose mode
+- log to channel
 
 Info log messages are redirected to stdout, stderr otherwise.
 
@@ -22,14 +24,34 @@ import (
     "github.com/dmachard/go-logger"
 )
 
-logger := logger.New(true)
-logger.Info("just a basic message!")
+lg := logger.New(true)
+lg.Info("just a basic message!")
 ```
 
 Output example:
 
-```
+```bash
 INFO: 2021/07/04 14:18:22.270971 just a basic message
+```
+
+## Usage example with channel
+
+Create logger with channel
+
+```go
+import (
+    "github.com/dmachard/go-logger"
+)
+
+logsChan := make(chan logger.LogEntry, 10)
+
+lg := logger.New(false)
+lg.SetOutputChannel((logsChan))
+
+lg.Info("just a basic message!")
+
+entry := <-logsChan
+fmt.Println(entry.Level, entry.Message)
 ```
 
 ## Testing
