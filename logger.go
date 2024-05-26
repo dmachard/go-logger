@@ -13,14 +13,16 @@ type Level int
 
 const (
 	INFO Level = iota
+	WARNING
 	ERROR
 	FATAL
 )
 
 const (
-	prefixInfo  = "INFO: "
-	prefixError = "ERROR: "
-	prefixFatal = "FATAL: "
+	prefixInfo    = "INFO: "
+	prefixWarning = "WARNING: "
+	prefixError   = "ERROR: "
+	prefixFatal   = "FATAL: "
 )
 
 type LogEntry struct {
@@ -30,22 +32,24 @@ type LogEntry struct {
 }
 
 type Logger struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	fatalLog *log.Logger
-	mu       sync.Mutex
-	verbose  bool
-	channel  chan LogEntry
+	infoLog    *log.Logger
+	warningLog *log.Logger
+	errorLog   *log.Logger
+	fatalLog   *log.Logger
+	mu         sync.Mutex
+	verbose    bool
+	channel    chan LogEntry
 }
 
 // Init loggers for each log levels
 func New(verbose bool) *Logger {
 	flags := log.Ldate | log.Ltime | log.Lmicroseconds
 	l := Logger{
-		infoLog:  log.New(os.Stdout, prefixInfo, flags),
-		errorLog: log.New(os.Stderr, prefixError, flags),
-		fatalLog: log.New(os.Stderr, prefixFatal, flags),
-		verbose:  verbose,
+		infoLog:    log.New(os.Stdout, prefixInfo, flags),
+		warningLog: log.New(os.Stdout, prefixWarning, flags),
+		errorLog:   log.New(os.Stderr, prefixError, flags),
+		fatalLog:   log.New(os.Stderr, prefixFatal, flags),
+		verbose:    verbose,
 	}
 	return &l
 }
@@ -64,6 +68,7 @@ func (l *Logger) SetOutput(w io.Writer) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.infoLog.SetOutput(w)
+	l.warningLog.SetOutput(w)
 	l.errorLog.SetOutput(w)
 	l.fatalLog.SetOutput(w)
 }
@@ -86,6 +91,8 @@ func (l *Logger) output(level Level, msg string) {
 	switch level {
 	case INFO:
 		l.infoLog.Output(depth, msg)
+	case WARNING:
+		l.warningLog.Output(depth, msg)
 	case ERROR:
 		l.errorLog.Output(depth, msg)
 	case FATAL:
@@ -100,6 +107,16 @@ func (l *Logger) Info(format string, v ...interface{}) {
 			l.channel <- LogEntry{Timestamp: time.Now(), Level: INFO, Message: fmt.Sprintf(format, v...)}
 		} else {
 			l.output(INFO, fmt.Sprintf(format, v...))
+		}
+	}
+}
+
+func (l *Logger) Warning(format string, v ...interface{}) {
+	if l.verbose {
+		if l.channel != nil {
+			l.channel <- LogEntry{Timestamp: time.Now(), Level: WARNING, Message: fmt.Sprintf(format, v...)}
+		} else {
+			l.output(WARNING, fmt.Sprintf(format, v...))
 		}
 	}
 }

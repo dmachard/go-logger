@@ -19,12 +19,14 @@ func TestLoggerWithChannel(t *testing.T) {
 
 	// logs messages
 	lg.Info("This is an informational message.")
+	lg.Warning("This is an warning message.")
 	lg.Error("This is an error message.")
 	lg.Fatal("This is a fatal message.")
 
 	// Expected entries
 	expectedEntries := []LogEntry{
 		{Level: INFO, Message: "This is an informational message."},
+		{Level: WARNING, Message: "This is an warning message."},
 		{Level: ERROR, Message: "This is an error message."},
 		{Level: FATAL, Message: "This is a fatal message."},
 	}

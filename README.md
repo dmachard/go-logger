@@ -3,7 +3,7 @@
 Basic logger library with the following features:
 
 - timestamp
-- level support (INFO, ERROR and FATAL)
+- level support (INFO, ERROR, WARNING and FATAL)
 - verbose mode
 - log to channel
 
